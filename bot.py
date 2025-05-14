@@ -58,7 +58,7 @@ def get_tours(event_id, meeting_point_id, tour_type_id):
 
 def start(update: Update, context: CallbackContext):
     update.message.reply_text(
-        "Welcome! I'll notify you when new Fusion Festival buses are available."
+        "Welcome! Use /check to check for available buses to Fusion festival."
     )
 
 
@@ -75,11 +75,9 @@ def main():
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("check", check))
-
-    # on non command i.e message - echo the message on Telegram
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
-    # Run the bot until the user presses Ctrl-C
+
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
