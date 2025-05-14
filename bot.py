@@ -57,12 +57,12 @@ def get_tours(event_id, meeting_point_id, tour_type_id):
 
 
 async def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text(
+    await update.message.reply_text(
         "Welcome! Use /check to check for available buses to Fusion festival."
     )
 
 async def check(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text(check_buses())
+    await update.message.reply_text(check_buses())
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
