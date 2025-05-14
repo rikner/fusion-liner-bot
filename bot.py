@@ -25,7 +25,7 @@ def check_buses():
     for tour in tours:
         tour_departure_time = datetime.datetime.fromisoformat(tour["time"])
         price_groups = tour["departures"][0]["price_groups"]
-        print(tour_departure_time, price_groups)
+
         if len(price_groups) == 0:
             continue
         else:
@@ -56,13 +56,12 @@ def get_tours(event_id, meeting_point_id, tour_type_id):
     return json.loads(response.text)
 
 
-def start(update: Update, context: CallbackContext):
+async def start(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(
         "Welcome! Use /check to check for available buses to Fusion festival."
     )
 
-
-def check(update: Update, context: CallbackContext):
+async def check(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(check_buses())
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
