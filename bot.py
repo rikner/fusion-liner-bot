@@ -1,8 +1,10 @@
-import os
-import requests
 import datetime
 import json
+import os
+from enum import Enum
+from typing import Optional
 
+import requests
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -13,13 +15,23 @@ from telegram.ext import (
     filters,
 )
 
+FUSION_EVENT_ID = 195
+OUTWARD_TOUR_TYPE_ID = 1
 
-def check_buses():
-    event_id = 195  # fusion festival
-    meeting_point_id = 1  # ostbahnhof
-    tour_type_id = 1  # outward
 
-    tours = get_tours(event_id, meeting_point_id, tour_type_id)
+class MeetingPoint(Enum):
+    OSTBAHNHOF = 1
+    ZOB = 2
+
+
+def get_earliest_available_fusion_outward_departure_time(
+    meeting_point: MeetingPoint,
+) -> Optional[datetime.datetime]:
+    tours = get_tours(
+        event_id=FUSION_EVENT_ID,
+        meeting_point_id=meeting_point.value,
+        tour_type_id=OUTWARD_TOUR_TYPE_ID,
+    )
 
     earliest_available_tour_departure_time = None
     for tour in tours:
@@ -34,16 +46,10 @@ def check_buses():
             elif tour_departure_time < earliest_available_tour_departure_time:
                 earliest_available_tour_departure_time = tour_departure_time
 
-    if earliest_available_tour_departure_time is None:
-        return "No buses available"
-    else:
-        return (
-            "Buses available! Earliest departure time: "
-            + earliest_available_tour_departure_time.strftime("%Y-%m-%d %H:%M:%S")
-        )
+    return earliest_available_tour_departure_time
 
 
-def get_tours(event_id, meeting_point_id, tour_type_id):
+def get_tours(event_id: int, meeting_point_id: MeetingPoint, tour_type_id: int):
     request_payload = {
         "event_id": event_id,
         "meeting_point_id": meeting_point_id,
@@ -53,6 +59,7 @@ def get_tours(event_id, meeting_point_id, tour_type_id):
     response = requests.post(
         "https://bassliner.org/api/event/tours", data=request_payload
     )
+
     return json.loads(response.text)
 
 
@@ -61,22 +68,44 @@ async def start(update: Update, context: CallbackContext) -> None:
         "Welcome! Use /check to check for available buses to Fusion festival."
     )
 
-async def check(update: Update, context: CallbackContext) -> None:
-    await update.message.reply_text(check_buses())
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Echo the user message."""
-    await update.message.reply_text(update.message.text)
+def perform_check() -> str:
+    ostbahnhof_departure = get_earliest_available_fusion_outward_departure_time(
+        meeting_point=MeetingPoint.OSTBAHNHOF
+    )
+    ostbahnhof_departure = (
+        ostbahnhof_departure.strftime("%d.%m.%y, %H:%M") if ostbahnhof_departure else "No available seats"
+    )
+    
+    zob_departure = get_earliest_available_fusion_outward_departure_time(
+        meeting_point=MeetingPoint.ZOB
+    )
+    zob_departure = (
+        zob_departure.strftime("%d.%m.%y, %H:%M") if zob_departure else "No available seats"
+    )
+
+    return """
+    🚍 What's the earliest available bassliner to Fusion? 🍾
+    --------------------------------------------------------
+    
+    From Ostbahnhof: {}
+
+    From ZOB: {}
+    """.format(
+        ostbahnhof_departure, zob_departure
+    )
+
+
+async def check(update: Update, context: CallbackContext) -> None:
+    result = perform_check()
+    await update.message.reply_text(result)
+
 
 def main():
     token = os.getenv("TG_API_TOKEN")
-
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("check", check))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-
-
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
