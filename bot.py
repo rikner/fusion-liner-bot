@@ -10,9 +10,6 @@ from telegram.ext import (
     Application,
     CallbackContext,
     CommandHandler,
-    ContextTypes,
-    MessageHandler,
-    filters,
 )
 
 FUSION_EVENT_ID = 195
@@ -55,12 +52,15 @@ def get_tours(event_id: int, meeting_point_id: MeetingPoint, tour_type_id: int):
         "meeting_point_id": meeting_point_id,
         "tour_type_id": tour_type_id,
     }
-
-    response = requests.post(
-        "https://bassliner.org/api/event/tours", data=request_payload
-    )
-
-    return json.loads(response.text)
+    try:
+        response = requests.post(
+            "https://bassliner.org/api/event/tours", data=request_payload, timeout=2000
+        )
+        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx and 5xx)
+        return json.loads(response.text)
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching tours: {e}")
+        return []
 
 
 async def start(update: Update, context: CallbackContext) -> None:
@@ -104,12 +104,16 @@ async def check(update: Update, context: CallbackContext) -> None:
     result = perform_check()
     await update.message.reply_text(result)
 
+async def error_handler(update: object, context: CallbackContext) -> None:
+    print(f"Exception while handling update {update}: {context.error}")
+    await update.message.reply_text("Oops, something went wrong! Maybe ask Dr. Uffi?")
 
 def main():
     token = os.getenv("TG_API_TOKEN")
     application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("check", check))
+    application.add_error_handler(error_handler)
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
