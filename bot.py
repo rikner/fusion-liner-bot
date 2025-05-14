@@ -85,12 +85,16 @@ def perform_check() -> str:
     )
 
     return """
-    🚍 What's the earliest available bassliner to Fusion? 🍾
-    --------------------------------------------------------
+    🚍 Earliest available bassliner to Fusion: 🍾 
+    ---------------------------------------------
     
     From Ostbahnhof: {}
 
     From ZOB: {}
+
+    ---------------------------------------------
+    https://bassliner.org/en/tours/fusion-festival-2025
+
     """.format(
         ostbahnhof_departure, zob_departure
     )
